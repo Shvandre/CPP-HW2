@@ -1,9 +1,6 @@
 #include <bits/stdc++.h>
-
 #include "FluidCalc.tpp"
 #include "types.tpp"
-
-
 
 constexpr size_t N = 36, M = 84;
 constexpr size_t T = 1'000'000;
@@ -45,56 +42,83 @@ char field[N][M + 1] = {
     "#                                                                                  #",
     "####################################################################################",
 };
-using Datatype = Fixed<Int, 32, 16>;
-//using Fluid = FluidCalc<N, M, Datatype, true>;
-#define S(a, b) {{a, b}, createFluid<a, b, TYPES>()}
 
-#define TYPES FAST_FIXED(13,7),FIXED(32,5),DOUBLE
-#define SIZES S(1920,1080),S(10,10),S(42,1337)
+
+
+
+
+
+template<int N, int M, class P_Type, class V_Type, class Flow_Candidate, class ...Args>
+std::any getFlowType(const std::string &flow_type, char** _field) {
+    if(getName<Flow_Candidate>() == flow_type) {
+        return std::make_any<FluidCalc<N, M, P_Type, V_Type, Flow_Candidate, false>>(_field);
+    }
+    if constexpr (sizeof...(Args) == 0) {
+        throw std::runtime_error("Invalid type Flow");
+    }
+    return getFlowType<N, M, P_Type, V_Type, Args...>(flow_type, _field);
+}
+
+
+template<int N, int M, class P_Type, class V_Candidate, class ...Args>
+std::any getVType(const std::string &v_type, const std::string &flow_type, char** _field) {
+    if(getName<V_Candidate>() == v_type) {
+        return getFlowType<N, M, P_Type, V_Candidate, Args...>(flow_type, _field);
+    }
+    if constexpr (sizeof...(Args) == 0) {
+        throw std::runtime_error("Invalid type V");
+    }
+    return getVType<N, M, P_Type, Args...>(v_type, flow_type, _field);
+}
+
+template<int N, int M, class P_Candidate, class ...Args>
+std::any getPType(const std::string &p_type, const std::string &v_type, const std::string &flow_type, char** _field) {
+    if(getName<P_Candidate>() == p_type) {
+        return getVType<N, M, P_Candidate, Args...>(v_type, flow_type, _field);
+    }
+    if constexpr (sizeof...(Args) == 0) {
+        throw std::runtime_error("Invalid type P");
+    }
+    return getPType<N, M, Args...>(p_type, v_type, flow_type, _field);
+}
 
 #define FLOAT float
 #define FAST_FIXED(width, precision) Fixed<FastInt, width, precision>
 #define FIXED(width, precision) Fixed<Int, width, precision>
 #define DOUBLE double
 
+// 3 раза вставляем TYPES т.к. каждый раз нужно пройтись по всем типам
+#define S(a, b) {{a, b}, {getPType<a, b, TYPES, TYPES, TYPES>(params["p-type"], params["v-type"], params["flow-type"], actual_field)}}
 
-class fixed {
-public:
-    static std::string name() {
-        return "fixed";
+#ifndef SIZES
+#define SIZES S(1920,1080),S(10,10),S(42,1337)
+#endif
+
+#ifndef TYPES
+#define TYPES FAST_FIXED(13,7),FIXED(32,5),DOUBLE,FLOAT
+#endif
+
+int main(int argc, char* argv[]) {
+    std::map<std::string, std::string> params;
+    std::regex pattern("--(p-type|v-type|flow-type)=(.+)");
+
+    for (int i = 1; i < argc; ++i) {
+        std::string arg(argv[i]);
+        std::smatch match;
+        if (std::regex_match(arg, match, pattern)) {
+            params[match[1]] = match[2];
+        }
     }
-};
 
-class dynamic {
-public:
-    static std::string name() {
-        return "dynamic";
+    std::cout << "Parsed parameters:\n";
+    for (const auto& [key, value] : params) {
+        std::cout << key << ": " << value << std::endl;
     }
-};
+    char **actual_field = (char**)field;
+    std::map<std::pair<int, int>, std::any> allFluids = {SIZES};
 
-template<typename A, typename B>
-struct test {
-    A x;
-    B y;
-};
+    std::map<pair<int, int>, int> results = {{{1920, 1080}, {0}}, {{10, 10}, {1}}, {{42, 1337}, 1}};
 
-template<typename First, typename ...Args>
-std::any get_test(const std::string &typeA, const std::string &typeB) {
-    if (First::name() == typeA){
-        return test<First, Args...>();
-    }
-    else if constexpr (sizeof...(Args) > 0) {
-        return get_test<Args...>(typeA, typeB);
-    }
-    else {
-        throw std::runtime_error("No such type");
-    }
-}
-
-
-int main() {
-    FluidCalc<N, M, Fixed<Int, 32, 16>, Fixed<Int, 32, 16>, Fixed<FastInt, 32, 16>, false> v(field);
-    v.run(1000);
 
     return 0;
 }

@@ -44,6 +44,10 @@ using FastInt = typename FastIntSelector<N>::type;
 
 template <template<int> class IntType, int N, int K>
 struct Fixed {
+    static std::string get_name(){
+        std::string typeName = std::is_same_v<IntType<N>, FastInt<N>> ? "FastFixed" : "Fixed";
+        return typeName + "<" + std::to_string(N) + ", " + std::to_string(K) + ">";
+    }
     constexpr Fixed(int v): v(v << K) {}
     constexpr Fixed(float f): v(f * (1 << K)) {}
     constexpr Fixed(double f): v(f * (1 << K)) {}

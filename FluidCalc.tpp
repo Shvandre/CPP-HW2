@@ -1,6 +1,19 @@
 #pragma once
 #include <bits/stdc++.h>
 
+template <class T>
+auto getName() {
+    if constexpr (std::is_same_v<T, float>) {
+        return "FLOAT";
+    } else if constexpr (std::is_same_v<T, double>) {
+        return "DOUBLE";
+    } else if constexpr (std::is_class_v<T> && std::is_invocable_v<decltype(&T::get_name)>) {
+        return T::get_name();
+    } else {
+        return "getName called from UNKNOWN TYPE";
+    }
+}
+
 static constexpr std::array<std::pair<int, int>, 4> deltas{{{-1, 0}, {1, 0}, {0, -1}, {0, 1}}};
 using std::pair, std::tuple, std::array, std::swap, std::cout, std::min;
 
@@ -21,10 +34,16 @@ struct FluidCalc : public FluidParent{
 
     //For static implementation
     template <bool D = dynamic, std::enable_if_t<!D, int> = 0>
-    explicit FluidCalc(char _field[N][M+1]): FluidParent() {
+    explicit FluidCalc(char** _field): FluidParent() {
+
+        std::cout << "I am constructed with Types: "
+                  << getName<p_Type>() << ", "
+                  << getName<v_Type>() << ", "
+                  << getName<flow_Type>()
+                  << std::endl;
+
         for (int i = 0; i < N; ++i) {
             for (int j = 0; j <= M; ++j) {
-                assert(i < N && j <= M);
                 field[i][j] = _field[i][j];
             }
         }
