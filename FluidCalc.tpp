@@ -13,17 +13,18 @@ public:
 template <int N, int M, class p_Type, class v_Type, class flow_Type, bool dynamic>
 struct FluidCalc : public FluidParent{
     // If not dynamic, must create static field N * M
-    using fieldType = std::conditional_t<dynamic, char(*)[M+1], std::array<std::array<char, N>, M + 1>>;
+    using fieldType = std::conditional_t<!dynamic, std::array<std::array<char, N>, M + 1>, char(*)[M+1]>;
     fieldType field;
 
-    template <bool D = dynamic, std::enable_if_t<!D, int>  = 0>
-    explicit FluidCalc(): FluidParent() {
+    inline static int MyN = N;
+    inline static int MyM = M;
 
-    }
-    template <bool D = dynamic, std::enable_if_t<!D, int>  = 0>
-    void init(char** _field) {
+    //For static implementation
+    template <bool D = dynamic, std::enable_if_t<!D, int> = 0>
+    explicit FluidCalc(char _field[N][M+1]): FluidParent() {
         for (int i = 0; i < N; ++i) {
             for (int j = 0; j <= M; ++j) {
+                assert(i < N && j <= M);
                 field[i][j] = _field[i][j];
             }
         }
@@ -32,12 +33,10 @@ struct FluidCalc : public FluidParent{
 
     //For dynamic implementation
     template <bool D = dynamic, std::enable_if_t<D, int> = 0>
-    explicit FluidCalc(): FluidParent() {
-
-    }
-    template <bool D = dynamic, std::enable_if_t<D, int> = 0>
-    void init(char** _field, int N_, int M_) {
+    explicit FluidCalc(char** _field, int N_, int M_) : FluidParent() {
         field = _field;
+        MyN = N_;
+        MyM = M_;
     }
 
     inline static p_Type inf = p_Type::max();
@@ -63,6 +62,17 @@ struct FluidCalc : public FluidParent{
             size_t i = std::ranges::find(deltas, pair(dx, dy)) - deltas.begin();
             assert(i < deltas.size());
             return v[x][y][i];
+        }
+        public:
+        VectorField& operator=(VectorField&& other) noexcept {
+            if (this != &other) {
+                for (size_t i = 0; i < N; ++i) {
+                    for (size_t j = 0; j < M; ++j) {
+                        std::copy(std::begin(other.v[i][j]), std::end(other.v[i][j]), std::begin(v[i][j]));
+                    }
+                }
+            }
+            return *this;
         }
     };
 

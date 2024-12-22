@@ -58,6 +58,10 @@ struct Fixed {
     static constexpr Fixed max() {
         return Fixed::from_raw(std::numeric_limits<IntType<N>>::max());
     }
+    Fixed& operator=(int x) {
+        v = x << K;
+        return *this;
+    }
 
     static constexpr Fixed from_raw(IntType<N> x) {
         Fixed ret;
@@ -66,16 +70,7 @@ struct Fixed {
     }
 
     IntType<N> v;
-    bool operator<=(const Fixed& other) const {
-        return v < other.v;
-    }
-    auto operator<=>(const Fixed& other) const {
-        return static_cast<double>(*this) <=> static_cast<double>(other);
-    }
 
-    bool operator==(const Fixed&) const = default;
-
-    //Cast from, and to float, double
     explicit operator float() const {
         return v / static_cast<float>(1 << K);
     }
@@ -83,70 +78,23 @@ struct Fixed {
         return v / static_cast<double>(1 << K);
     }
 
-
-
-    //Оператор деления на int
-    Fixed operator/(int x) const {
-        return Fixed::from_raw(v / x);
-    }
-    bool operator<(int x) const {
-        return v < (x << K);
-    }
-    bool operator<=(int x) const {
-        return v <= (x << K);
-    }
-    bool operator>(int x) const {
-        return v > (x << K);
-    }
-    bool operator>=(int x) const {
-        return v >= (x << K);
-    }
-    //Cast from int to Fixed
-    Fixed& operator=(int x) {
-        v = x << K;
+    Fixed& operator+=(double x) {
+        v += Fixed(x).v;
         return *this;
     }
 
-    Fixed operator+(const Fixed& other) const {
-        return Fixed::from_raw(v + other.v);
+    template <template<int> class OtherIntType>
+    operator Fixed<OtherIntType, N, K>() const {
+        Fixed<OtherIntType, N, K> result;
+        result.v = static_cast<OtherIntType<N>>(v);
+        return result;
     }
-
-    Fixed operator-(const Fixed& other) const {
-        return Fixed::from_raw(v - other.v);
-    }
-
-    Fixed operator*(const Fixed& other) const {
-        return Fixed::from_raw((static_cast<int64_t>(v) * other.v) >> K);
-    }
-
-    Fixed operator/(const Fixed& other) const {
-        return Fixed::from_raw((static_cast<int64_t>(v) << K) / other.v);
-    }
-
-    Fixed& operator+=(const Fixed& other) {
-        v += other.v;
+    constexpr Fixed& operator=(const Fixed& other) noexcept {
+        if (this != &other) {
+            v = other.v;
+        }
         return *this;
     }
-
-    Fixed& operator-=(const Fixed& other) {
-        v -= other.v;
-        return *this;
-    }
-
-    Fixed& operator*=(const Fixed& other) {
-        v = (static_cast<int64_t>(v) * other.v) >> K;
-        return *this;
-    }
-
-    Fixed& operator/=(const Fixed& other) {
-        v = (static_cast<int64_t>(v) << K) / other.v;
-        return *this;
-    }
-
-    Fixed operator-() const {
-        return Fixed::from_raw(-v);
-    }
-
     Fixed abs() const {
         return Fixed::from_raw(v < 0 ? -v : v);
     }
@@ -155,3 +103,101 @@ struct Fixed {
         return out << x.v / static_cast<long double>(1 << K);
     }
 };
+
+// Comparison operators
+template <template<int> class IntType, int N, int K>
+bool operator<=(const Fixed<IntType, N, K>& lhs, const Fixed<IntType, N, K>& rhs) {
+    return lhs.v < rhs.v;
+}
+
+template <template<int> class IntType, int N, int K>
+auto operator<=>(const Fixed<IntType, N, K>& lhs, const Fixed<IntType, N, K>& rhs) {
+    return static_cast<double>(lhs) <=> static_cast<double>(rhs);
+}
+
+template <template<int> class IntType, int N, int K>
+bool operator==(const Fixed<IntType, N, K>& lhs, const Fixed<IntType, N, K>& rhs) {
+    return lhs.v == rhs.v;
+}
+
+// Arithmetic operators
+template <template<int> class IntType, int N, int K>
+Fixed<IntType, N, K> operator/(const Fixed<IntType, N, K>& lhs, int x) {
+    return Fixed<IntType, N, K>::from_raw(lhs.v / x);
+}
+
+template <template<int> class IntType, int N, int K>
+bool operator<(const Fixed<IntType, N, K>& lhs, int x) {
+    return lhs.v < (x << K);
+}
+
+template <template<int> class IntType, int N, int K>
+bool operator<=(const Fixed<IntType, N, K>& lhs, int x) {
+    return lhs.v <= (x << K);
+}
+
+template <template<int> class IntType, int N, int K>
+bool operator>(const Fixed<IntType, N, K>& lhs, int x) {
+    return lhs.v > (x << K);
+}
+
+template <template<int> class IntType, int N, int K>
+bool operator>=(const Fixed<IntType, N, K>& lhs, int x) {
+    return lhs.v >= (x << K);
+}
+
+template <template<int> class IntType, int N, int K>
+Fixed<IntType, N, K> operator+(const Fixed<IntType, N, K>& lhs, const Fixed<IntType, N, K>& rhs) {
+    return Fixed<IntType, N, K>::from_raw(lhs.v + rhs.v);
+}
+
+template <template<int> class IntType, int N, int K>
+Fixed<IntType, N, K> operator-(const Fixed<IntType, N, K>& lhs, const Fixed<IntType, N, K>& rhs) {
+    return Fixed<IntType, N, K>::from_raw(lhs.v - rhs.v);
+}
+
+template <template<int> class IntType, int N, int K>
+Fixed<IntType, N, K> operator*(const Fixed<IntType, N, K>& lhs, const Fixed<IntType, N, K>& rhs) {
+    return Fixed<IntType, N, K>::from_raw((static_cast<int64_t>(lhs.v) * rhs.v) >> K);
+}
+
+template <template<int> class IntType, int N, int K>
+Fixed<IntType, N, K> operator/(const Fixed<IntType, N, K>& lhs, const Fixed<IntType, N, K>& rhs) {
+    return Fixed<IntType, N, K>::from_raw((static_cast<int64_t>(lhs.v) << K) / rhs.v);
+}
+
+// Compound assignment operators
+template <template<int> class IntType, int N, int K>
+Fixed<IntType, N, K>& operator+=(Fixed<IntType, N, K>& lhs, const Fixed<IntType, N, K>& rhs) {
+    if((long long)lhs.v + (long long)rhs.v > std::numeric_limits<IntType<N>>::max()) {
+        lhs.v = std::numeric_limits<IntType<N>>::max();
+    } else {
+        lhs.v += rhs.v;
+    }
+    lhs.v += rhs.v;
+    return lhs;
+}
+
+template <template<int> class IntType, int N, int K>
+Fixed<IntType, N, K>& operator-=(Fixed<IntType, N, K>& lhs, const Fixed<IntType, N, K>& rhs) {
+    lhs.v -= rhs.v;
+    return lhs;
+}
+
+template <template<int> class IntType, int N, int K>
+Fixed<IntType, N, K>& operator*=(Fixed<IntType, N, K>& lhs, const Fixed<IntType, N, K>& rhs) {
+    lhs.v = (static_cast<int64_t>(lhs.v) * rhs.v) >> K;
+    return lhs;
+}
+
+template <template<int> class IntType, int N, int K>
+Fixed<IntType, N, K>& operator/=(Fixed<IntType, N, K>& lhs, const Fixed<IntType, N, K>& rhs) {
+    lhs.v = (static_cast<int64_t>(lhs.v) << K) / rhs.v;
+    return lhs;
+}
+
+// Unary operators
+template <template<int> class IntType, int N, int K>
+Fixed<IntType, N, K> operator-(const Fixed<IntType, N, K>& x) {
+    return Fixed<IntType, N, K>::from_raw(-x.v);
+}
