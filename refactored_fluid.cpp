@@ -50,36 +50,41 @@ char field[N][M + 1] = {
 
 template<int N, int M, class P_Type, class V_Type, class Flow_Candidate, class ...Args>
 std::any getFlowType(const std::string &flow_type, char** _field) {
-    if(getName<Flow_Candidate>() == flow_type) {
-        return std::make_any<FluidCalc<N, M, P_Type, V_Type, Flow_Candidate, false>>(_field);
-    }
     if constexpr (sizeof...(Args) == 0) {
         throw std::runtime_error("Invalid type Flow");
     }
-    return getFlowType<N, M, P_Type, V_Type, Args...>(flow_type, _field);
+    else if(getName<Flow_Candidate>() == flow_type) {
+        return std::make_any<FluidCalc<N, M, P_Type, V_Type, Flow_Candidate, false>>(_field);
+    }
+    else {
+        return getFlowType<N, M, P_Type, V_Type, Args...>(flow_type, _field);
+    }
 }
-
 
 template<int N, int M, class P_Type, class V_Candidate, class ...Args>
 std::any getVType(const std::string &v_type, const std::string &flow_type, char** _field) {
-    if(getName<V_Candidate>() == v_type) {
-        return getFlowType<N, M, P_Type, V_Candidate, Args...>(flow_type, _field);
-    }
     if constexpr (sizeof...(Args) == 0) {
         throw std::runtime_error("Invalid type V");
     }
-    return getVType<N, M, P_Type, Args...>(v_type, flow_type, _field);
+    else if (getName<V_Candidate>() == v_type) {
+        return getFlowType<N, M, P_Type, V_Candidate, Args...>(flow_type, _field);
+    }
+    else{
+        return getVType<N, M, P_Type, Args...>(v_type, flow_type, _field);
+    }
 }
 
 template<int N, int M, class P_Candidate, class ...Args>
 std::any getPType(const std::string &p_type, const std::string &v_type, const std::string &flow_type, char** _field) {
-    if(getName<P_Candidate>() == p_type) {
-        return getVType<N, M, P_Candidate, Args...>(v_type, flow_type, _field);
-    }
     if constexpr (sizeof...(Args) == 0) {
         throw std::runtime_error("Invalid type P");
     }
-    return getPType<N, M, Args...>(p_type, v_type, flow_type, _field);
+    else if(getName<P_Candidate>() == p_type) {
+        return getVType<N, M, P_Candidate, Args...>(v_type, flow_type, _field);
+    }
+    else{
+        return getPType<N, M, Args...>(p_type, v_type, flow_type, _field);
+    }
 }
 
 #define FLOAT float
@@ -117,7 +122,7 @@ int main(int argc, char* argv[]) {
     char **actual_field = (char**)field;
     std::map<std::pair<int, int>, std::any> allFluids = {SIZES};
 
-    std::map<pair<int, int>, int> results = {{{1920, 1080}, {0}}, {{10, 10}, {1}}, {{42, 1337}, 1}};
+
 
 
     return 0;
