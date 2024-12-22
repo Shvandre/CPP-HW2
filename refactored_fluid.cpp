@@ -93,8 +93,6 @@ std::any get_test(const std::string &typeA, const std::string &typeB) {
 
 
 int main() {
-    // Создаем Fluid для разных типов и размеров
-    //std::map<std::pair<int, int>, std::vector<std::any>> v = {SIZES};
     FluidCalc<N, M, Fixed<Int, 32, 16>, Fixed<Int, 32, 16>, Fixed<FastInt, 32, 16>, false> v(field);
     v.run(1000);
 
