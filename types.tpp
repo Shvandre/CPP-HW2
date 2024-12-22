@@ -174,7 +174,6 @@ Fixed<IntType, N, K>& operator+=(Fixed<IntType, N, K>& lhs, const Fixed<IntType,
     } else {
         lhs.v += rhs.v;
     }
-    lhs.v += rhs.v;
     return lhs;
 }
 

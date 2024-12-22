@@ -13,7 +13,7 @@ public:
 template <int N, int M, class p_Type, class v_Type, class flow_Type, bool dynamic>
 struct FluidCalc : public FluidParent{
     // If not dynamic, must create static field N * M
-    using fieldType = std::conditional_t<!dynamic, std::array<std::array<char, N>, M + 1>, char(*)[M+1]>;
+    using fieldType = std::conditional_t<!dynamic, std::array<std::array<char, M+1>, N>, char(*)[M+1]>;
     fieldType field;
 
     inline static int MyN = N;
@@ -208,7 +208,10 @@ struct FluidCalc : public FluidParent{
             auto [dx, dy] = deltas[d];
             nx = x + dx;
             ny = y + dy;
-            assert(velocity.get(x, y, dx, dy) > 0 && field[nx][ny] != '#' && last_use[nx][ny] < UT);
+
+            assert(field[nx][ny] != '#');
+            assert(last_use[nx][ny] < UT);
+            assert(velocity.get(x, y, dx, dy) > 0);
 
             ret = (last_use[nx][ny] == UT - 1 || propagate_move(nx, ny, false));
         }
