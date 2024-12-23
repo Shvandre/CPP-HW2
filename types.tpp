@@ -93,6 +93,14 @@ struct Fixed {
         result.v = static_cast<OtherIntType<N>>(v);
         return result;
     }
+
+    template<template<int> class OtherIntType, int otherN, int otherM>
+    operator Fixed<OtherIntType, otherN, otherM>() const {
+        Fixed<OtherIntType, otherN, otherM> result;
+        result.v = static_cast<OtherIntType<otherN>>(v);
+        return result;
+    }
+
     constexpr Fixed& operator=(const Fixed& other) noexcept {
         if (this != &other) {
             v = other.v;
@@ -138,6 +146,15 @@ bool operator<(const Fixed<IntType, N, K>& lhs, int x) {
 template <template<int> class IntType, int N, int K>
 bool operator<=(const Fixed<IntType, N, K>& lhs, int x) {
     return lhs.v <= (x << K);
+}
+
+
+
+//Fixed -= double
+template <template<int> class IntType, int N, int K>
+Fixed<IntType, N, K>& operator-=(Fixed<IntType, N, K>& lhs, double x) {
+    lhs.v -= Fixed<IntType, N, K>(x).v;
+    return lhs;
 }
 
 template <template<int> class IntType, int N, int K>

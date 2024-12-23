@@ -49,12 +49,12 @@ char field[N][M + 1] = {
 
 
 template<int N, int M, class P_Type, class V_Type, class Flow_Candidate, class ...Args>
-std::any getFlowType(const std::string &flow_type, char** _field) {
+std::shared_ptr<FluidParent> getFlowType(const std::string &flow_type, char** _field) {
     if constexpr (sizeof...(Args) == 0) {
         throw std::runtime_error("Invalid type Flow");
     }
     else if(getName<Flow_Candidate>() == flow_type) {
-        return std::make_any<FluidCalc<N, M, P_Type, V_Type, Flow_Candidate, false>>(_field);
+        return std::make_shared<FluidCalc<N, M, P_Type, V_Type, Flow_Candidate, false>>(_field);
     }
     else {
         return getFlowType<N, M, P_Type, V_Type, Args...>(flow_type, _field);
@@ -62,7 +62,7 @@ std::any getFlowType(const std::string &flow_type, char** _field) {
 }
 
 template<int N, int M, class P_Type, class V_Candidate, class ...Args>
-std::any getVType(const std::string &v_type, const std::string &flow_type, char** _field) {
+std::shared_ptr<FluidParent> getVType(const std::string &v_type, const std::string &flow_type, char** _field) {
     if constexpr (sizeof...(Args) == 0) {
         throw std::runtime_error("Invalid type V");
     }
@@ -75,7 +75,7 @@ std::any getVType(const std::string &v_type, const std::string &flow_type, char*
 }
 
 template<int N, int M, class P_Candidate, class ...Args>
-std::any getPType(const std::string &p_type, const std::string &v_type, const std::string &flow_type, char** _field) {
+std::shared_ptr<FluidParent> getPType(const std::string &p_type, const std::string &v_type, const std::string &flow_type, char** _field) {
     if constexpr (sizeof...(Args) == 0) {
         throw std::runtime_error("Invalid type P");
     }
@@ -100,12 +100,12 @@ std::any getPType(const std::string &p_type, const std::string &v_type, const st
 #endif
 
 #ifndef TYPES
-#define TYPES FAST_FIXED(13,7),FIXED(32,5),DOUBLE,FLOAT
+#define TYPES FAST_FIXED(54,16),FIXED(32,16),DOUBLE,FLOAT
 #endif
 
 int main(int argc, char* argv[]) {
     std::map<std::string, std::string> params;
-    std::regex pattern("--(p-type|v-type|flow-type)=(.+)");
+    std::regex pattern("--(p-type|v-type|flow-type|file)=(.+)");
 
     for (int i = 1; i < argc; ++i) {
         std::string arg(argv[i]);
@@ -115,14 +115,39 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    if (params.find("file") == params.end()) {
+        throw std::runtime_error("Missing mandatory argument: --file");
+    }
+
     std::cout << "Parsed parameters:\n";
     for (const auto& [key, value] : params) {
         std::cout << key << ": " << value << std::endl;
     }
-    char **actual_field = (char**)field;
-    std::map<std::pair<int, int>, std::any> allFluids = {SIZES};
 
+    int actualN, actualM;
+    std::ifstream file(params["file"]);
+    file >> actualN >> actualM;
+    char **actual_field = new char*[actualN];
+    std::map<std::pair<int, int>, std::shared_ptr<FluidParent>> allFluids = {SIZES};
 
+    for (int i = 0; i < actualN; ++i) {
+        actual_field[i] = new char[actualM + 1];
+        std::string line;
+        std::getline(file, line);
+        std::strncpy(actual_field[i], line.c_str(), actualM);
+        actual_field[i][actualM] = '\0'; // Ensure null-termination
+    }
+
+    if(!allFluids.contains({actualN, actualM})) {
+        std::cout << "Such size does not exist\n";
+        std::cout << "Fallback to dynamic Fluid...\n";
+        //create dynamic fluid
+        //auto fluid = getPType<0, 0, TYPES, TYPES, TYPES>(params["p-type"], params["v-type"], params["flow-type"], actual_field);
+    }
+    else {
+        auto fluid = allFluids[{actualN, actualM}];
+        fluid->run(1000);
+    }
 
 
     return 0;

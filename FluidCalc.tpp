@@ -17,10 +17,25 @@ auto getName() {
 static constexpr std::array<std::pair<int, int>, 4> deltas{{{-1, 0}, {1, 0}, {0, -1}, {0, 1}}};
 using std::pair, std::tuple, std::array, std::swap, std::cout, std::min;
 
+namespace std {
+    template<typename T, std::size_t N>
+    void swap(std::array<T, N>& a, std::array<T, N>& b) {
+        for (std::size_t i = 0; i < N; ++i) {
+            std::swap(a[i], b[i]);
+        }
+    }
+    template<typename T, typename U, std::size_t N>
+    void swap(std::array<T, N>& a, std::array<U, N>& b) {
+        for (std::size_t i = 0; i < N; ++i) {
+            std::swap(static_cast<T>(a[i]), static_cast<T>(b[i]));
+        }
+    }
+}
 class FluidParent {
 public:
     FluidParent() = default;
     ~FluidParent() = default;
+    virtual void run(size_t) = 0;
 };
 
 template <int N, int M, class p_Type, class v_Type, class flow_Type, bool dynamic>
@@ -115,7 +130,7 @@ struct FluidCalc : public FluidParent{
                     continue;
                 }
                 // assert(v >= velocity_flow.get(x, y, dx, dy));
-                auto vp = min(static_cast<double>(lim), cap - flow);
+                auto vp = min(static_cast<double>(lim), static_cast<double>(cap - flow));
                 if (last_use[nx][ny] == UT - 1) {
                     velocity_flow.add(x, y, dx, dy, vp);
                     last_use[x][y] = UT;
@@ -137,7 +152,15 @@ struct FluidCalc : public FluidParent{
     }
 
     static p_Type random01() {
-        return p_Type::from_raw((rnd() & ((1 << 16) - 1)));
+        if constexpr (std::is_same_v<p_Type, double>) {
+            return static_cast<p_Type>(rnd()) / rnd.max();
+        }
+        else if constexpr (std::is_same_v<p_Type, float>) {
+            return static_cast<p_Type>(rnd()) / rnd.max();
+        }
+        else {
+            return p_Type::from_raw(rnd());
+        }
     }
 
     void propagate_stop(int x, int y, bool force = false) {
@@ -190,7 +213,10 @@ struct FluidCalc : public FluidParent{
         void swap_with(int x, int y) {
             swap(field[x][y], type);
             swap(p[x][y], cur_p);
-            swap(velocity.v[x][y], v);
+            //swap(static_cast<decltype(v)>(velocity.v[x][y]), v);
+            for(size_t i = 0; i <v.size(); i++) {
+                swap(static_cast<decltype(v[i])>(velocity.v[x][y][i]), v[i]);
+            }
         }
     };
 
@@ -254,7 +280,7 @@ struct FluidCalc : public FluidParent{
         return ret;
     }
 
-    void run(const size_t tics) {
+    void run(size_t tics) override {
         int dirs[N][M]{};
         rho[' '] = 0.01;
         rho['.'] = 1000;
