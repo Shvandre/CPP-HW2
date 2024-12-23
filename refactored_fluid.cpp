@@ -105,7 +105,7 @@ std::shared_ptr<FluidParent> getPType(const std::string &p_type, const std::stri
 
 int main(int argc, char* argv[]) {
     std::map<std::string, std::string> params;
-    std::regex pattern("--(p-type|v-type|flow-type|file)=(.+)");
+    std::regex pattern("--(p-type|v-type|flow-type|file|j)=(.+)");
 
     for (int i = 1; i < argc; ++i) {
         std::string arg(argv[i]);
@@ -115,8 +115,9 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    if (params.find("file") == params.end()) {
-        throw std::runtime_error("Missing mandatory argument: --file");
+    if (params.find("file") == params.end() || params.find("j") == params.end()) {
+        std::cerr << "Usage: " << argv[0] << " --file=<filename> --p-type=<p_type> --v-type=<v_type> --flow-type=<flow_type> --j=<num_threads>\n";
+        return 1;
     }
 
     std::cout << "Parsed parameters:\n";

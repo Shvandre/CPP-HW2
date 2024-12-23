@@ -93,7 +93,18 @@ struct FluidCalc : public FluidParent{
         }
 
         T& get(int x, int y, int dx, int dy) {
-            size_t i = std::ranges::find(deltas, pair(dx, dy)) - deltas.begin();
+            size_t i;
+            if (dx == -1 && dy == 0) {
+                i = 0;
+            } else if (dx == 1 && dy == 0) {
+                i = 1;
+            } else if (dx == 0 && dy == -1) {
+                i = 2;
+            } else if (dx == 0 && dy == 1) {
+                i = 3;
+            } else {
+                assert(false && "Invalid delta");
+            }
             assert(i < deltas.size());
             return v[x][y][i];
         }
@@ -248,7 +259,11 @@ struct FluidCalc : public FluidParent{
             }
 
             p_Type p = random01() * sum;
-            size_t d = std::ranges::upper_bound(tres, p) - tres.begin();
+            size_t d = 0;
+            if (p <= tres[0]) d = 0;
+            else if (p <= tres[1]) d = 1;
+            else if (p <= tres[2]) d = 2;
+            else d = 3;
 
             auto [dx, dy] = deltas[d];
             nx = x + dx;
